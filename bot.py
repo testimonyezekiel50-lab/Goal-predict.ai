@@ -50,16 +50,38 @@ async def get_team(name):
     return teams[0]["team"]
 
 
+
+from datetime import datetime, timedelta, timezone
+
 async def recent_stats(team_id):
+    today = datetime.now(timezone.utc).date()
+    start_date = today - timedelta(days=60)
+
     fixtures = await api_get(
         "fixtures",
-        {"team": team_id, "last": 10}
+        {
+            "team": team_id,
+            "from": start_date.isoformat(),
+            "to": today.isoformat(),
+        }
     )
+
+    finished = [
+        item for item in fixtures
+        if item["fixture"]["status"]["short"] in ("FT", "AET", "PEN")
+    ]
+
+    finished.sort(
+        key=lambda item: item["fixture"]["date"],
+        reverse=True
+    )
+
+    finished = finished[:10]
 
     goals_for = []
     goals_against = []
 
-    for item in fixtures:
+    for item in finished:
         teams = item["teams"]
         goals = item["goals"]
 
@@ -71,13 +93,14 @@ async def recent_stats(team_id):
             goals_against.append(goals["home"] or 0)
 
     if not goals_for:
-        raise RuntimeError("No recent fixtures found")
+        raise RuntimeError("No recent finished matches found")
 
     return (
         sum(goals_for) / len(goals_for),
         sum(goals_against) / len(goals_against),
         len(goals_for),
     )
+
 
 
 def poisson(mean, goals):
