@@ -52,14 +52,18 @@ async def get_team(name):
 
 
 from datetime import datetime, timedelta, timezone
+
 async def recent_stats(team_id):
     today = datetime.now(timezone.utc).date()
     start_date = today - timedelta(days=60)
+
+    season = today.year if today.month >= 7 else today.year - 1
 
     fixtures = await api_get(
         "fixtures",
         {
             "team": team_id,
+            "season": season,
             "from": start_date.isoformat(),
             "to": today.isoformat(),
         }
@@ -99,6 +103,7 @@ async def recent_stats(team_id):
         sum(goals_against) / len(goals_against),
         len(goals_for),
     )
+    
     
 
 
